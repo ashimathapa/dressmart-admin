@@ -1,0 +1,73 @@
+/* Sidebar.css */
+.sidebar {
+    width: 100%;
+    max-width: 250px; /* Sidebar width on larger screens */
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    padding-top: 30px;
+    gap: 20px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Optional shadow */
+    height: auto; /* Remove full-height */
+}
+
+/* Sidebar items */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Align to start */
+    padding: 10px 20px;
+    background-color: #f6f6f6;
+    border-radius: 6px;
+    gap: 10px; /* Space between icon and text */
+    cursor: pointer;
+    margin: 0 10px;
+    transition: background-color 0.3s; /* Smooth hover effect */
+}
+
+/* Hover effect */
+.sidebar-item:hover {
+    background-color: #e0e0e0; /* Change background on hover */
+}
+
+/* Responsive Design */
+
+/* For tablets and smaller screens */
+@media (max-width: 1024px) {
+    .sidebar {
+        max-width: 200px; /* Reduce sidebar width for tablets */
+    }
+
+    .sidebar-item {
+        padding: 10px 15px; /* Slightly reduce padding */
+        margin: 0 5px; /* Reduce margin */
+    }
+}
+
+/* For smaller tablets and phones */
+@media (max-width: 768px) {
+    .sidebar {
+        flex-direction: row;
+        justify-content: space-around;
+        max-width: 100%; /* Further reduce sidebar width */
+    }
+
+    .sidebar-item {
+        padding: 5px 10px; /* Further reduce padding */
+        margin: 0 5px;
+    }
+}
+
+/* For mobile devices */
+@media (max-width: 480px) {
+    .sidebar {
+        flex-direction: row; /* Align items horizontally */
+        justify-content: space-around; /* Distribute items evenly */
+        max-width: 100%; /* Full width for mobile */
+    }
+
+    .sidebar-item {
+        flex-direction: row; /* Keep items horizontal */
+        margin: 0 5px; /* Reduce margin */
+    }
+}
