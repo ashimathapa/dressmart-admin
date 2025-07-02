@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './UserManagement.css';
 
-// Set base URL once for axios
+// Set base URL for API calls
 axios.defaults.baseURL = 'http://localhost:5000';
 
 const UserManagement = () => {
@@ -11,29 +11,29 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Make sure token key matches login storage key
-  const token = localStorage.getItem('adminToken');
+  // Set auth token for all requests
+  useEffect(() => {
+    const token = localStorage.getItem('auth-token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  }, []);
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('/admin/users', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await axios.get('/admin/users');
         setUsers(response.data.data.users);
       } catch (err) {
         console.error('Fetch users error:', err);
-        setError('Failed to fetch users');
+        setError(err.response?.data?.message || 'Failed to fetch users');
       } finally {
         setLoading(false);
       }
     };
-    if (token) fetchUsers();
-    else {
-      setError('No admin token found. Please login.');
-      setLoading(false);
-    }
-  }, [token]);
+    
+    fetchUsers();
+  }, []);
 
   const handleRoleChange = (userId, newRole) => {
     setRoleUpdates((prev) => ({ ...prev, [userId]: newRole }));
@@ -42,18 +42,18 @@ const UserManagement = () => {
   const saveRoleUpdate = async (userId) => {
     try {
       const updatedRole = roleUpdates[userId];
-      await axios.put(
+      const response = await axios.put(
         `/admin/users/${userId}/roles`,
-        { roles: [updatedRole] },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { roles: [updatedRole] }
       );
+      
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
-          user._id === userId ? { ...user, roles: [updatedRole] } : user
+          user._id === userId ? response.data.user : user
         )
       );
+      
+      // Clear the pending update
       setRoleUpdates((prev) => {
         const newUpdates = { ...prev };
         delete newUpdates[userId];
@@ -61,31 +61,26 @@ const UserManagement = () => {
       });
     } catch (err) {
       console.error('Update role error:', err);
-      setError('Failed to update user role');
+      setError(err.response?.data?.message || 'Failed to update user role');
     }
   };
 
   const toggleStatus = async (userId) => {
     try {
-      const response = await axios.put(
-        `/admin/users/${userId}/status`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await axios.put(`/admin/users/${userId}/status`);
       const updatedUser = response.data.user;
+      
       setUsers((prevUsers) =>
         prevUsers.map((user) => (user._id === userId ? updatedUser : user))
       );
     } catch (err) {
       console.error('Toggle status error:', err);
-      setError('Failed to toggle user status');
+      setError(err.response?.data?.message || 'Failed to toggle user status');
     }
   };
 
-  if (loading) return <p>Loading users...</p>;
-  if (error) return <p style={{ color: 'red' }}>{error}</p>;
+  if (loading) return <p className="loading-message">Loading users...</p>;
+  if (error) return <p className="error-message">{error}</p>;
 
   return (
     <div className="user-management-container">
@@ -111,17 +106,30 @@ const UserManagement = () => {
                   <select
                     value={selectedRole}
                     onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                    className="role-selector"
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
                   </select>
                 </td>
-                <td>{user.isActive ? 'Active' : 'Inactive'}</td>
                 <td>
+                  <span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>
+                    {user.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td className="action-buttons">
                   {roleUpdates[user._id] && (
-                    <button onClick={() => saveRoleUpdate(user._id)}>Save Role</button>
+                    <button 
+                      onClick={() => saveRoleUpdate(user._id)}
+                      className="save-btn"
+                    >
+                      Save Role
+                    </button>
                   )}
-                  <button onClick={() => toggleStatus(user._id)}>
+                  <button 
+                    onClick={() => toggleStatus(user._id)}
+                    className={`status-btn ${user.isActive ? 'deactivate' : 'activate'}`}
+                  >
                     {user.isActive ? 'Deactivate' : 'Activate'}
                   </button>
                 </td>

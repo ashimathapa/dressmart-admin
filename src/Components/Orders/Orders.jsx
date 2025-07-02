@@ -1,17 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import './Orders.css';
+import axios from 'axios';
+
+// Set base URL for API calls
+axios.defaults.baseURL = 'http://localhost:5000';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Format currency with "Rs" prefix
+  // Set auth token for all requests
+  useEffect(() => {
+    const token = localStorage.getItem('auth-token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  }, []);
+
   const formatCurrency = (amount) => {
-    return `Rs ${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+    return `Rs ${amount?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") || '0.00'}`;
   };
 
-  // Get customer name from shipping info
   const getCustomerName = (order) => {
     if (order.shippingInfo) {
       return `${order.shippingInfo.firstName || ''} ${order.shippingInfo.lastName || ''}`.trim();
@@ -22,18 +32,10 @@ const Orders = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await fetch('http://localhost:5000/admin/orders', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-          }
-        });
-        
-        if (!response.ok) throw new Error('Failed to fetch orders');
-        
-        const data = await response.json();
-        setOrders(data.orders);
+        const response = await axios.get('/admin/orders');
+        setOrders(response.data.orders);
       } catch (err) {
-        setError(err.message);
+        setError(err.response?.data?.message || 'Failed to fetch orders');
       } finally {
         setLoading(false);
       }
@@ -44,24 +46,13 @@ const Orders = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/admin/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      
-      if (!response.ok) throw new Error('Failed to update order status');
-      
-      const updatedOrder = await response.json();
+      const response = await axios.put(`/admin/orders/${orderId}/status`, { status: newStatus });
       
       setOrders(orders.map(order => 
-        order._id === updatedOrder.order._id ? updatedOrder.order : order
+        order._id === response.data.order._id ? response.data.order : order
       ));
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || 'Failed to update order status');
     }
   };
 
@@ -72,6 +63,7 @@ const Orders = () => {
 
   if (loading) return <div className="loading-message">Loading orders...</div>;
   if (error) return <div className="error-message">Error: {error}</div>;
+  if (orders.length === 0) return <div className="empty-message">No orders found</div>;
 
   return (
     <div className="orders-container">
